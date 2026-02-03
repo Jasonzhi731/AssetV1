@@ -307,38 +307,32 @@
     </div>
 
     <script>
-        // 設定密碼
-        const APP_PASSWORD = "6952"; 
-        
-        const apiKey = ""; 
-        const INITIAL_STATE = {
-            'p1': { name: '阿公', stocks: [{ symbol: 'CTBB', shares: 550, cost: 9.81 }, { symbol: 'CTDD', shares: 5200, cost: 10.94 }, { symbol: 'QVCC', shares: 1700, cost: 9.89 }, { symbol: 'GLOP-A', shares: 2440, cost: 21.09 }, { symbol: 'SEAL-B', shares: 1000, cost: 24.97 }] },
-            'p2': { name: '健治', stocks: [{ symbol: 'NVDA', shares: 100, cost: 185 }, { symbol: 'GOOGL', shares: 100, cost: 192 }, { symbol: 'SNDK', shares: 20, cost: 658 }, { symbol: 'AVGO', shares: 20, cost: 347 }, { symbol: 'UZF', shares: 1000, cost: 18.5 }] },
-            'p3': { name: '阿嬤', stocks: [{ symbol: 'CTBB', shares: 450, cost: 9.32 }, { symbol: 'GLOP-A', shares: 1100, cost: 22.11 }, { symbol: 'GLOP-B', shares: 255, cost: 21.87 }, { symbol: 'QQQ', shares: 30, cost: 572.53 }, { symbol: 'SEAL-B', shares: 1500, cost: 25.36 }, { symbol: 'TBB', shares: 900, cost: 22.29 }] }
-        };
+       
+        const CORRECT_HASH = "951475c4044eb985db586c556b694723141f0217277d704543787a2a53702581";
 
-        const STORAGE_KEY = 'portfolio_tri_v600_stable';
-        let store = JSON.parse(localStorage.getItem(STORAGE_KEY)) || INITIAL_STATE;
-        let currentId = 'p1', filterSelection = ['p1', 'p2', 'p3'], cache = {}, tChart, pChartA, pChartS, tf = 7, usdToTwd = null;
-        let syncedSet = new Set(), timer = null, chartSyncTimer = null;
-        let initialChartLoaded = false;
-        let isAppUnlocked = false; // 追蹤是否已解鎖
+       
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
-        // 頁面載入時只初始化鎖定畫面輸入框
-        window.onload = () => { 
-            document.getElementById('password-input').focus();
-            document.getElementById('password-input').addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') checkPassword();
-            });
-        };
-
-        // 檢查密碼
-        function checkPassword() {
-            const input = document.getElementById('password-input');
+        // 修改後的檢查密碼函式
+        async function checkPassword() {
+            const inputField = document.getElementById('password-input');
             const msg = document.getElementById('auth-msg');
+            const inputVal = inputField.value;
+
+            // 如果沒輸入內容，不執行
+            if (!inputVal) return;
+
+            // 計算使用者輸入內容的 Hash
+            const hash = await sha256(inputVal);
             
-            if (input.value === APP_PASSWORD) {
-                // 密碼正確：切換到載入畫面並開始同步
+            // 比對雜湊值
+            if (hash === CORRECT_HASH) {
+                // 密碼正確：解鎖
                 document.getElementById('lock-screen').classList.add('hidden-overlay');
                 document.getElementById('loading-overlay').classList.remove('hidden');
                 
@@ -347,10 +341,10 @@
                 startGlobalSync();
             } else {
                 // 密碼錯誤
-                input.value = '';
-                msg.innerText = "密碼錯誤，請重試";
-                input.classList.add('shake');
-                setTimeout(() => input.classList.remove('shake'), 500);
+                inputField.value = '';
+                msg.innerText = "密碼錯誤";
+                inputField.classList.add('shake');
+                setTimeout(() => inputField.classList.remove('shake'), 500);
             }
         }
 
